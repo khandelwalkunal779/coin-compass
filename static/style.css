@@ -1,0 +1,82 @@
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap");
+
+:root {
+  /* CSS HEX MODERN */
+  --ink-black: #111827ff;
+  --charcoal-blue: #334155ff;
+  --ocean-mist: #14b8a6ff;
+  --amber-gold: #fbbf24ff;
+  --bright-snow: #f9fafbff;
+}
+
+body {
+  font-family: "Montserrat", sans-serif;
+  background-color: var(--bright-snow);
+  color: var(--ink-black);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 50px;
+  margin: 0;
+}
+
+.card {
+  background-color: var(--bright-snow);
+  border: 1px solid var(--charcoal-blue); /* Added for contrast against the bright-snow body */
+  border-radius: 10px;
+  box-shadow: 0 4px 6px #1118271a; /* 10% opacity of ink-black */
+  padding: 30px;
+  width: 100%;
+  max-width: 350px;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.hidden {
+  display: none !important;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  background-color: var(--bright-snow);
+  color: var(--ink-black);
+  border: 1px solid var(--charcoal-blue);
+  border-radius: 5px;
+  box-sizing: border-box;
+  font-family:
+    "Montserrat", sans-serif; /* Explicitly set to override browser default */
+}
+
+button {
+  width: 100%;
+  padding: 10px;
+  background-color: var(--ocean-mist);
+  color: var(--bright-snow);
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-top: 10px;
+  font-family:
+    "Montserrat", sans-serif; /* Explicitly set to override browser default */
+}
+
+button:hover {
+  background-color: var(--charcoal-blue);
+}
+
+.error {
+  color: var(--amber-gold);
+  font-size: 0.9em;
+  margin-bottom: 10px;
+}
+
+.stat-box {
+  background-color: var(--charcoal-blue);
+  color: var(--bright-snow);
+  padding: 15px;
+  border-radius: 5px;
+  margin: 10px 0;
+}

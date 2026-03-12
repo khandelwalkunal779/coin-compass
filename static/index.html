@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/static/style.css" />
+    <link rel="icon" href="/static/assets/favicon.svg" />
+    <title>Coin Compass</title>
+  </head>
+  <body>
+    <h1 style="margin-bottom: 30px">Coin Compass</h1>
+    <img src="/static/assets/logo.svg" />
+
+    <div id="login-view" class="card">
+      <h2>Login</h2>
+      <div id="login-error" class="error hidden">
+        Invalid credentials. Try again.
+      </div>
+      <input type="text" id="user_id" placeholder="Enter User ID" />
+      <input type="password" id="password" placeholder="Enter Password" />
+      <button onclick="handleLogin()">Access Dashboard</button>
+    </div>
+
+    <div id="dashboard-view" class="card hidden">
+      <h2>Your Dashboard</h2>
+      <div id="loading-msg" style="color: #7f8c8d">Syncing data...</div>
+
+      <div id="data-container" class="hidden">
+        <div class="stat-box">
+          <small>Total Balance</small>
+          <h3 id="balance" style="margin: 5px 0">--</h3>
+        </div>
+        <div class="stat-box">
+          <small>Monthly Expenses</small>
+          <h3 id="expenses" style="margin: 5px 0">--</h3>
+        </div>
+      </div>
+
+      <button
+        onclick="handleLogout()"
+        style="background-color: #95a5a6; margin-top: 20px"
+      >
+        Secure Logout
+      </button>
+    </div>
+
+    <script src="/static/script.js"></script>
+  </body>
+</html>
