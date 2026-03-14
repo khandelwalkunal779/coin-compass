@@ -1,29 +1,22 @@
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import os
-from pathlib import Path
+import jwt
+import datetime
+
+if os.getenv("ENVIRONMENT") != "prod":
+    from dotenv import load_dotenv
+
+    load_dotenv()
 
 app = FastAPI(title="Coin Compass API")
 
-# ----------------------------------
-#       Local Development
-# ----------------------------------
-from dotenv import load_dotenv
-
-load_dotenv()
-FRONTEND_DIR = Path(__file__).resolve().parent.parent / "static"
-app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
-
 
 @app.get("/")
-async def serve_frontend():
-    return FileResponse(FRONTEND_DIR / "index.html")
-
-
-# ----------------------------------
+def root():
+    return FileResponse("static/index.html")
 
 
 app.add_middleware(
@@ -40,29 +33,44 @@ class LoginRequest(BaseModel):
     password: str
 
 
+def _jwt_secret() -> str:
+    secret = os.getenv("JWT_SECRET")
+    if not secret:
+        raise HTTPException(status_code=500, detail="JWT_SECRET not configured")
+    return secret
+
+
 @app.post("/api/login")
 def login(credentials: LoginRequest):
-    # Uses Render environment variables if set, otherwise defaults for local testing
     correct_user = os.getenv("USER_ID")
     correct_pass = os.getenv("PASSWORD")
 
-    if not correct_pass or not correct_user:
+    if not correct_user or not correct_pass:
         raise HTTPException(status_code=500, detail="Environment not set properly")
 
-    if credentials.user_id == correct_user and credentials.password == correct_pass:
-        # A dummy token for this project. In a production app, use a real JWT.
-        return {"token": "coin-compass-secret-token-xyz"}
+    if credentials.user_id != correct_user or credentials.password != correct_pass:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    raise HTTPException(status_code=401, detail="Invalid credentials")
+    payload = {
+        "sub": credentials.user_id,
+        "exp": datetime.datetime.now(datetime.timezone.utc)
+        + datetime.timedelta(hours=1),
+    }
+    token = jwt.encode(payload, _jwt_secret(), algorithm="HS256")
+    return {"token": token}
 
 
 @app.get("/api/summary")
 def get_financial_summary(authorization: str = Header(None)):
-    expected_token = "Bearer coin-compass-secret-token-xyz"
-
-    # Block anyone trying to hit this endpoint without the correct token
-    if not authorization or authorization != expected_token:
+    if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Unauthorized access")
 
-    # Serve the data if the token is valid
+    token = authorization.removeprefix("Bearer ")
+    try:
+        jwt.decode(token, _jwt_secret(), algorithms=["HS256"])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
     return {"total_balance": 24500, "monthly_expenses": 8200, "currency": "₹"}
