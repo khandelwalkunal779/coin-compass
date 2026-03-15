@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Header
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -11,21 +11,22 @@ if os.getenv("ENVIRONMENT") != "prod":
 
     load_dotenv()
 
+FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN")
+
 app = FastAPI(title="Coin Compass API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[FRONTEND_ORIGIN],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/")
 def root():
     return FileResponse("static/index.html")
-
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 
 class LoginRequest(BaseModel):
@@ -40,8 +41,31 @@ def _jwt_secret() -> str:
     return secret
 
 
+def _verify_cookie(request: Request) -> dict:
+    token = request.cookies.get("compass_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="Unauthorized access")
+    try:
+        return jwt.decode(token, _jwt_secret(), algorithms=["HS256"])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+
+IS_PROD = os.getenv("ENVIRONMENT") == "prod"
+
+COOKIE_OPTS = dict(
+    key="compass_token",
+    httponly=True,
+    secure=IS_PROD,
+    samesite="none" if IS_PROD else "strict",
+    path="/",
+)
+
+
 @app.post("/api/login")
-def login(credentials: LoginRequest):
+def login(credentials: LoginRequest, response: Response):
     correct_user = os.getenv("USER_ID")
     correct_pass = os.getenv("PASSWORD")
 
@@ -57,20 +81,17 @@ def login(credentials: LoginRequest):
         + datetime.timedelta(hours=1),
     }
     token = jwt.encode(payload, _jwt_secret(), algorithm="HS256")
-    return {"token": token}
+    response.set_cookie(value=token, max_age=3600, **COOKIE_OPTS)
+    return {"ok": True}
+
+
+@app.post("/api/logout")
+def logout(response: Response):
+    response.set_cookie(value="", max_age=0, **COOKIE_OPTS)
+    return {"ok": True}
 
 
 @app.get("/api/summary")
-def get_financial_summary(authorization: str = Header(None)):
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Unauthorized access")
-
-    token = authorization.removeprefix("Bearer ")
-    try:
-        jwt.decode(token, _jwt_secret(), algorithms=["HS256"])
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
+def get_financial_summary(request: Request):
+    _verify_cookie(request)
     return {"total_balance": 24500, "monthly_expenses": 8200, "currency": "₹"}
